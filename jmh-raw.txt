@@ -1,0 +1,31 @@
+Benchmark                                                 Mode     Cnt      Score   Error  Units
+BitReaderBenchmark.huffmanDecode                          avgt      10      5.373 ± 0.011  ns/op
+BitReaderBenchmark.readBits_32                            avgt      10      6.036 ± 0.013  ns/op
+BitReaderBenchmark.readUBitVarFP                          avgt      10      0.639 ± 0.002  ns/op
+BitReaderBenchmark.huffmanDecode                        sample  299430     28.939 ± 0.413  ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.00    sample             20.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.50    sample             30.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.90    sample             30.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.95    sample             31.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.99    sample             31.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.999   sample             80.000          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p0.9999  sample           3526.959          ns/op
+BitReaderBenchmark.huffmanDecode:huffmanDecode·p1.00    sample          14784.000          ns/op
+BitReaderBenchmark.readBits_32                          sample  256875     30.373 ± 0.409  ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.00        sample             20.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.50        sample             30.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.90        sample             30.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.95        sample             31.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.99        sample             31.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.999       sample             90.000          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p0.9999      sample           3486.493          ns/op
+BitReaderBenchmark.readBits_32:readBits_32·p1.00        sample          15008.000          ns/op
+BitReaderBenchmark.readUBitVarFP                        sample  241229     26.307 ± 1.121  ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.00    sample             20.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.50    sample             20.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.90    sample             30.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.95    sample             30.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.99    sample             31.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.999   sample             80.000          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p0.9999  sample           4457.112          ns/op
+BitReaderBenchmark.readUBitVarFP:readUBitVarFP·p1.00    sample          65344.000          ns/op
