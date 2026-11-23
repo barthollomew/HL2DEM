@@ -89,14 +89,45 @@ val patchProtos by tasks.registering {
     doLast {
         val dir = protoOutDir.get().asFile
         dir.listFiles()?.filter { it.name.endsWith(".proto") }?.forEach { f ->
-            val text = f.readText()
+            var text = f.readText()
+
+            // Remove lines with option additional_includes
+            text = text.lines().filter { !it.contains("additional_includes") }.joinToString("\n")
+
+            // Remove boxed_type and synthetic_default from options
+            text = text.replace(Regex(",\\s*boxed_type\\s*=\\s*\"[^\"]*\""), "")
+            text = text.replace(Regex("boxed_type\\s*=\\s*\"[^\"]*\"\\s*,?"), "")
+            text = text.replace(Regex(",\\s*synthetic_default\\s*=\\s*\"[^\"]*\""), "")
+            text = text.replace(Regex("synthetic_default\\s*=\\s*\"[^\"]*\"\\s*,?"), "")
+
+            // Clean up empty option brackets like [] left over
+            text = text.replace(Regex("\\[\\s*\\]"), "")
+
             if (!text.contains("option java_package")) {
                 val outerClass = f.nameWithoutExtension
                     .split("_").joinToString("") { w -> w.replaceFirstChar { it.uppercase() } }
-                val inject = "option java_package = \"valve.pb\";\n" +
-                             "option java_outer_classname = \"${outerClass}Proto\";\n"
-                f.writeText(inject + text)
+                val packageOpt = "option java_package = \"valve.pb\";\n"
+                val classOpt = "option java_outer_classname = \"${outerClass}Proto\";\n"
+
+                if (f.name == "valveextensions.proto") {
+                    val target = "import \"google/protobuf/descriptor.proto\";\n"
+                    if (text.contains(target)) {
+                        text = text.replace(target, target + packageOpt + classOpt)
+                    } else {
+                        text = packageOpt + classOpt + text
+                    }
+                } else {
+                    var inject = packageOpt + classOpt
+                    if (!text.contains("import \"google/protobuf/descriptor.proto\";")) {
+                        inject += "import \"google/protobuf/descriptor.proto\";\n"
+                    }
+                    if (!text.contains("import \"valveextensions.proto\";")) {
+                        inject += "import \"valveextensions.proto\";\n"
+                    }
+                    text = inject + text
+                }
             }
+            f.writeText(text)
         }
     }
 }
