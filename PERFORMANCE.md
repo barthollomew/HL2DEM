@@ -4,65 +4,52 @@
 
 | Item | Value |
 |---|---|
-| JDK | OpenJDK 21.0.2 (Amazon Corretto) |
+| JDK | OpenJDK 21.0.2 Amazon Corretto |
 | JMH | 1.36 |
 | OS | Linux 7.0.9 x86_64 |
-| Warmup | 10 iterations × 1 s |
-| Measurement | 10 iterations × 1 s |
+| Warmup | 10 runs by 1 s |
+| Measurement | 10 runs by 1 s |
 | Forks | 1 |
-| Modes | `AverageTime` + `SampleTime` |
+| Modes | AverageTime and SampleTime |
 
-## Results — BitReader / HuffmanTree
+## Results for BitReader and HuffmanTree
 
-Hot paths in CS2 entity decode: every field update in every packet reads one Huffman opcode
-plus one `UBitVarFP` value. These two operations dominate per-entity CPU time.
+Hot paths in CS2 entity decode read one Huffman opcode and one UBitVarFP value for every field update in every packet. These two tasks take most of the CPU time during parsing.
 
-### Average Time (mean ± error)
+### Average Time (mean plus or minus error)
 
-| Benchmark | Mean (ns) | ± Error |
+| Benchmark | Mean (ns) | Error |
 |---|---|---|
-| `HuffmanTree.decode` | **5.37** | ±0.01 |
-| `BitReader.readBits(32)` | **6.04** | ±0.01 |
-| `BitReader.readUBitVarFP` | **0.64** | ±0.002 |
+| HuffmanTree.decode | 5.37 | 0.01 |
+| BitReader.readBits(32) | 6.04 | 0.01 |
+| BitReader.readUBitVarFP | 0.64 | 0.002 |
 
 ### Percentiles (SampleTime)
 
 | Benchmark | p50 (ns) | p95 (ns) | p99 (ns) | p99.9 (ns) |
 |---|---|---|---|---|
-| `HuffmanTree.decode` | 30 | 31 | 31 | 80 |
-| `BitReader.readBits(32)` | 30 | 31 | 31 | 90 |
-| `BitReader.readUBitVarFP` | 20 | 30 | 31 | 80 |
+| HuffmanTree.decode | 30 | 31 | 31 | 80 |
+| BitReader.readBits(32) | 30 | 31 | 31 | 90 |
+| BitReader.readUBitVarFP | 20 | 30 | 31 | 80 |
 
-The p99–p99.9 jump to 80–90 ns reflects OS scheduling jitter on unshielded cores; the hot-path
-(p50) is consistently ≤30 ns for all three primitives.
+The jump from p99 to p99.9 reaches 80 to 90 ns due to OS core scheduling jitter. The fast path p50 stays at or below 30 ns for all three methods.
 
 ## Bugs Found and Fixed During Hardening
 
-The fuzzer and benchmarks exposed two latent bugs:
+The fuzzer and benchmarks found two hidden bugs:
 
-### 1. `VarintReader`: negative offset from large-payload varint (`IOOBE` in `FrameSplicer`)
-- **Root cause:** A 5-byte varint encoding 0xFFFF_FFFF decodes to `-1` as a signed `int`.
-  `FrameSplicer` added this to `position` (a `long`), making position negative. The next
-  call to `VarintReader.readVarint(seg, -2_147_483_648L)` passed the bounds check
-  (`-2G < 512`) and then called `seg.get(JAVA_BYTE, -2G)` which threw `IOOBE`.
-- **Fix:** Added `if (offset < 0) throw ISE` guard in `VarintReader.readVarint`; added
-  `if (size < 0) return null` guard in `FrameSplicer.next`.
-- **Detected by:** `DemFuzzerTest.randomMutations_parserNeverHangs(seed=12345)`
+### 1. VarintReader negative offset error
 
-### 2. `HuffmanTree`: comparator reads `a[2]` on a 2-element merged node (`AIOOBE`)
-- **Root cause:** Leaf nodes in the heap are `long[]{weight, nodeIdx, insertionOrder}` (length 3).
-  Merged internal nodes were inserted as `long[]{combinedWeight, nodeIdx}` (length 2). When two
-  internal nodes had equal combined weights, the tie-breaking comparator read `a[2]` and threw
-  `ArrayIndexOutOfBoundsException`.
-- **Fix:** Added `insertionOrder++` to the merged-node array in `HuffmanTree`.
-- **Detected by:** `BitReaderBenchmark.huffmanDecode` (failed in first JMH warmup iteration)
+- Root cause: A 5-byte varint for 0xFFFF_FFFF decoded to negative one as a signed int. FrameSplicer added this to position as a long. That made position negative. The next read passed the bounds check because it was small and threw an index out of bounds error.
+- Fix: Added a check for negative offset in VarintReader and a check for negative size in FrameSplicer.
+- Found by: DemFuzzerTest random mutations.
 
-## VarintReader Benchmarks (Java 22+ required)
+### 2. HuffmanTree comparator array size error
 
-`VarintReader.readVarint()` takes a `MemorySegment` parameter. `java.lang.foreign.MemorySegment`
-is a preview API in Java 21 (finalized in Java 22 via JEP 454). The JMH benchmark for
-`VarintReader` is in `src/jmh/java/hl2dem/io/VarintBenchmark.java` as a stub. To run it,
-upgrade the toolchain to Java 22+ and restore the `@Benchmark` methods.
+- Root cause: Leaf nodes used an array of length three while merged nodes used an array of length two. When two merged nodes had equal weights the tie breaker comparator read index two and threw an index out of bounds error.
+- Fix: Added insertion order tracking to merged nodes in HuffmanTree.
+- Found by: BitReaderBenchmark huffman decode during the first warmup run.
 
-Expected order-of-magnitude: 2–8 ns per varint (single-byte hot path vs. 5-byte slow path),
-consistent with the `readUBitVarFP` baseline above.
+## VarintReader Benchmarks (Java 22 required)
+
+VarintReader takes a MemorySegment. MemorySegment is a preview feature in Java 21 and final in Java 22. The JMH benchmark stub sits in src/jmh/java/hl2dem/io/VarintBenchmark.java. Upgrade to Java 22 and restore benchmark annotations to run it.
