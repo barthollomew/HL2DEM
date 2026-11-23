@@ -1,15 +1,19 @@
 # HL2DEM
 
-CS2 demo file parser for Java 21+. Reads dot dem files from the CS2 Source 2 engine. It decodes player state tick by tick and exports data as NDJSON or CSV. It streams data while parsing without loading the whole file into memory.
+Counter-Strike 2 match replays (`.dem` files) pack hundreds of megabytes of tick-by-tick player positions, view angles, and flashbang states into a compressed binary stream.
+
+## What it does
+
+HL2DEM parses CS2 demo files at high speed using modern Java. It memory-maps the `.dem` file with Java 21 `MemorySegment` so it never loads the whole file into heap memory. It unpacks Snappy frames and Source 2 Huffman field paths with zero copy overhead. It runs live crosshair accuracy and flashbang blindness analytics (`CrosshairEngine` and `BlindnessTracker`) on a background virtual thread while rendering a live terminal dashboard (`Dashboard`). It streams every tick to NDJSON or CSV.
 
 ## How it works
 
-- DemoFile: maps the file into memory using MemorySegment and Arena. Reads zero copy data.
-- FrameSplicer: walks varint headers to split the byte stream into frames.
-- FrameUnpacker: unpacks Snappy compressed payloads or passes raw uncompressed bytes.
-- EntityDecoder: parses proto tables and entity updates using CS2 proto files. Tracks up to 64 players.
-- HuffmanTree: decodes Huffman paths used in entity delta compression. Weights match the Source 2 engine.
-- Virtual threads: parser and writer run on separate virtual threads with a shared queue. Export work happens off the main parse path.
+- **DemoFile**: memory-maps the replay via Java 21 foreign memory API. Zero copy reads throughout the parse pipeline.
+- **FrameSplicer**: walks varint frame headers to split the byte stream into individual frames.
+- **FrameUnpacker**: decompresses Snappy payloads or passes raw bytes for uncompressed frames.
+- **EntityDecoder**: processes protobuf tables and entity updates using Valve CS2 definitions. Tracks up to 64 players.
+- **HuffmanTree**: decodes Huffman field paths used in entity delta compression. Weights match the Source 2 engine.
+- **Virtual Threads**: parser and consumer run on separate virtual threads with a bounded queue. Analytics and UI rendering run off the parse hot path.
 
 ## Build
 
