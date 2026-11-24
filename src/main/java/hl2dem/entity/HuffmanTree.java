@@ -2,17 +2,15 @@ package hl2dem.entity;
 
 import java.util.PriorityQueue;
 
-// Builds and navigates the Huffman tree used for CS2 field path decoding.
 final class HuffmanTree {
 
-    // A node in the tree. Leaf nodes hold a FieldPathOp id; internal nodes hold -1.
+    // Leaf nodes hold a FieldPathOp id; internal nodes hold -1.
     private final int[] left;   // left child index (0 bit)
     private final int[] right;  // right child index (1 bit)
-    private final int[] opId;   // FieldPathOp.id if leaf, else -1
+    private final int[] opId;
     private final int root;
     private int size;
 
-    // Node count: at most 2*N-1 for N leaves.
     HuffmanTree(FieldPathOp[] ops) {
         int capacity = ops.length * 2;
         left = new int[capacity];
@@ -52,7 +50,6 @@ final class HuffmanTree {
         return size++;
     }
 
-    // Decode one opcode from the BitReader by traversing the tree.
     int decode(BitReader br) {
         int node = root;
         while (opId[node] == -1) {

@@ -50,8 +50,6 @@ public final class EntityDecoder {
         return tickComplete;
     }
 
-    // ---- Schema building from DEM_SEND_TABLES ----
-
     private void handleSendTables(byte[] data, int len) throws java.io.IOException {
         DemoProto.CDemoSendTables msg = DemoProto.CDemoSendTables.parseFrom(
             CodedInputStream.newInstance(data, 0, len));
@@ -65,13 +63,12 @@ public final class EntityDecoder {
             symbols[i] = fs.getSymbols(i);
         }
 
-        // Build all field descriptors first (they reference each other by index).
+        // First pass: fields reference sub-serializers by index, resolved below once serializers[] is built.
         FieldSchema[] allFields = new FieldSchema[fs.getFieldsCount()];
         for (int i = 0; i < fs.getFieldsCount(); i++) {
-            allFields[i] = buildField(fs.getFields(i), null); // sub-serializers resolved below
+            allFields[i] = buildField(fs.getFields(i), null);
         }
 
-        // Build serializer list so sub-serializer references can be resolved.
         serializers = new SerializerSchema[fs.getSerializersCount()];
         for (int i = 0; i < fs.getSerializersCount(); i++) {
             NetmessagesProto.ProtoFlattenedSerializer_t s = fs.getSerializers(i);
@@ -84,7 +81,6 @@ public final class EntityDecoder {
             serializers[i] = new SerializerSchema(name, version, fields);
         }
 
-        // Second pass: resolve sub-serializer references now that serializers[] is populated.
         for (int i = 0; i < fs.getFieldsCount(); i++) {
             NetmessagesProto.ProtoFlattenedSerializerField_t f = fs.getFields(i);
             if (f.hasFieldSerializerNameSym()) {
@@ -96,7 +92,6 @@ public final class EntityDecoder {
                 }
             }
         }
-        // Rebuild serializer field arrays to pick up the resolved sub-serializers.
         for (int i = 0; i < fs.getSerializersCount(); i++) {
             NetmessagesProto.ProtoFlattenedSerializer_t s = fs.getSerializers(i);
             FieldSchema[] fields = serializers[i].fields;
@@ -139,7 +134,6 @@ public final class EntityDecoder {
         for (SerializerSchema s : serializers) {
             if (s.name.equals(name) && s.version == version) return s;
         }
-        // Fall back to any version match if exact not found.
         for (SerializerSchema s : serializers) {
             if (s.name.equals(name)) return s;
         }
@@ -150,8 +144,6 @@ public final class EntityDecoder {
         if (symbols == null || idx < 0 || idx >= symbols.length) return "";
         return symbols[idx];
     }
-
-    // ---- ClassInfo: maps class IDs to serializer indices ----
 
     private void handleClassInfo(byte[] data, int len) throws java.io.IOException {
         DemoProto.CDemoClassInfo msg = DemoProto.CDemoClassInfo.parseFrom(
@@ -169,8 +161,6 @@ public final class EntityDecoder {
             }
         }
     }
-
-    // ---- Packet frame: extract embedded SVC messages ----
 
     private void handlePacket(byte[] data, int len, int tick) throws java.io.IOException {
         DemoProto.CDemoPacket msg = DemoProto.CDemoPacket.parseFrom(
@@ -212,8 +202,6 @@ public final class EntityDecoder {
         return count;
     }
 
-    // ---- Entity delta bit-stream decode ----
-
     private void handlePacketEntities(byte[] data, int offset, int len, int tick)
             throws java.io.IOException {
         if (serializers == null) return;
@@ -236,16 +224,15 @@ public final class EntityDecoder {
             boolean b1 = br.readBool();
 
             if (!b0 && !b1) {
-                // Update existing entity.
                 decodeEntityUpdate(br, entityId, tick);
             } else if (!b0) {
-                // Enter PVS - new entity. Read class ID and serial.
+                // Enter PVS: new entity.
                 int classId = br.readBits(classBits());
                 br.readBits(17); // serial
                 entityClassId[entityId] = classId;
                 decodeEntityUpdate(br, entityId, tick);
             } else {
-                // Leave or delete.
+                // Leave PVS or delete.
                 context.remove(entityId);
                 if (b1) entityClassId[entityId] = -1;
             }
@@ -276,7 +263,6 @@ public final class EntityDecoder {
             ? context.getOrCreate(entityId) : null;
         if (state != null) state.lastUpdateTick = tick;
 
-        // Reset path for this entity.
         java.util.Arrays.fill(path, 0);
         path[0] = -1;
         depth = 0;
@@ -293,7 +279,6 @@ public final class EntityDecoder {
         // We can't safely skip fields without knowing the schema, so just stop.
     }
 
-    // Advance the mutable path[] and depth using the decoded Huffman opcode.
     private void advancePath(int op, BitReader br) {
         switch (op) {
             case FieldPathOp.PLUS_ONE -> path[depth]++;
@@ -488,7 +473,6 @@ public final class EntityDecoder {
         }
     }
 
-    // Navigate the schema along path[0..depth] and read + apply the field value.
     private void readAndApplyField(SerializerSchema rootSchema, BitReader br, PlayerState state) {
         SerializerSchema schema = rootSchema;
         FieldSchema field = null;
@@ -549,7 +533,6 @@ public final class EntityDecoder {
             }
             case "float32", "CNetworkedQuantizedFloat" -> {
                 float val;
-                int flags = field.encodeFlags;
                 if (field.bitCount > 0 && field.bitCount < 32) {
                     val = br.readQuantizedFloat(field.bitCount, field.lowValue, field.highValue);
                 } else {
@@ -566,12 +549,10 @@ public final class EntityDecoder {
                 }
             }
             case "CUtlString", "CUtlSymbolLarge" -> {
-                // Skip strings: read length as varint then that many bytes via bits.
                 int slen = br.readVarUInt32();
                 br.readBits(Math.min(slen * 8, br.bitsRemaining()));
             }
             default -> {
-                // Integer / handle types.
                 int bits = field.bitCount;
                 if (bits > 0 && bits <= 32) {
                     int val = br.readBits(bits);
@@ -579,7 +560,6 @@ public final class EntityDecoder {
                         state.isAlive = val > 0;
                     }
                 } else if (bits > 32) {
-                    // 64-bit: read as two 32s.
                     long lo = br.readBits(32) & 0xFFFFFFFFL;
                     long hi = br.readBits(bits - 32) & 0xFFFFFFFFL;
                     long val = lo | (hi << 32);

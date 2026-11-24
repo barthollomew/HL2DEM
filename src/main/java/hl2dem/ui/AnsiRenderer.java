@@ -42,7 +42,6 @@ public final class AnsiRenderer {
         sb.append(CSI).append(code).append('m');
     }
 
-    // Append a field padded or truncated to exactly `width` chars.
     public static void field(StringBuilder sb, String value, int width) {
         if (value.length() >= width) {
             sb.append(value, 0, width);

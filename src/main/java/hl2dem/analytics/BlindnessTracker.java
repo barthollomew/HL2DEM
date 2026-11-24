@@ -2,8 +2,6 @@ package hl2dem.analytics;
 
 import hl2dem.entity.PlayerState;
 
-// Tracks flash grenade blindness per player.
-// Detects flash onset and falloff, emits BlindEvent records, maintains last blind duration.
 public final class BlindnessTracker {
 
     private static final int MAX_PLAYERS = 64;
@@ -28,10 +26,8 @@ public final class BlindnessTracker {
             float curr = p.flashDuration;
 
             if (prev <= 0f && curr > 0f) {
-                // Rising edge: flash started.
                 onsetTick[slot] = tick;
             } else if (prev > 0f && curr <= 0f) {
-                // Falling edge: flash ended.
                 long durationMs = (long) ((tick - onsetTick[slot]) / TICKS_PER_SECOND * 1000);
                 lastBlindMs[slot] = durationMs;
                 if (pendingCount >= pendingEvents.length) {
@@ -43,7 +39,6 @@ public final class BlindnessTracker {
         }
     }
 
-    // Returns the most recently emitted blind events from the last process() call.
     public BlindEvent[] pendingEvents() {
         return pendingEvents;
     }
@@ -52,12 +47,10 @@ public final class BlindnessTracker {
         return pendingCount;
     }
 
-    // Returns the last measured blindness duration in ms for a given entity ID.
     public long lastBlindMs(int entityId) {
         return lastBlindMs[slotOf(entityId)];
     }
 
-    // Returns the current flash duration for a given entity ID (from last process() call).
     public float currentFlash(int entityId) {
         return prevFlash[slotOf(entityId)];
     }

@@ -1,6 +1,5 @@
 package hl2dem.entity;
 
-// Describes a single field within a serializer (entity class).
 final class FieldSchema {
 
     final String name;
@@ -9,11 +8,7 @@ final class FieldSchema {
     final float lowValue;
     final float highValue;
     final int encodeFlags;
-
-    // If non-null, this field is an embedded sub-serializer.
     final SerializerSchema subSerializer;
-
-    // If true, this is a fixed-size array field with a known element count.
     final int arrayLength;
 
     FieldSchema(String name, String typeName, int bitCount,

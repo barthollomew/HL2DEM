@@ -1,6 +1,5 @@
 package hl2dem.entity;
 
-// Describes one entity class (serializer) and its ordered field list.
 final class SerializerSchema {
 
     final String name;

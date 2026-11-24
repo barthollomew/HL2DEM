@@ -55,18 +55,15 @@ public final class Main {
 
         BlockingQueue<PlayerState[]> queue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
 
-        // Consumer thread: analytics + export.
         Exporter exporter = openExporter(format, outPath);
         Thread consumer = Thread.ofVirtual().name("consumer").start(() -> {
             try {
                 while (true) {
                     PlayerState[] snap = queue.take();
                     if (snap == POISON) break;
-                    // Run analytics off the hot path.
                     crosshair.process(snap);
                     blind.process(snap, snap.length > 0 && snap[0] != null
                         ? snap[0].lastUpdateTick : 0);
-                    // Export if requested.
                     if (toFile && snap.length > 0 && snap[0] != null) {
                         exporter.write(snap, snap[0].lastUpdateTick);
                     }
@@ -79,38 +76,39 @@ public final class Main {
         try (DemoFile demo = DemoFile.open(demoPath)) {
             dash.start(counters, ctx, crosshair, blind, demoPath);
 
-            // Hot-path virtual thread: parse frames, decode entities, post snapshots.
             Thread parser = Thread.ofVirtual().name("parser").start(() -> {
-                FrameSplicer  splicer  = new FrameSplicer(demo);
-                FrameUnpacker unpacker = new FrameUnpacker();
-                EntityDecoder decoder  = new EntityDecoder(ctx);
-                long startMs = System.currentTimeMillis();
+                try {
+                    FrameSplicer  splicer  = new FrameSplicer(demo);
+                    FrameUnpacker unpacker = new FrameUnpacker();
+                    EntityDecoder decoder  = new EntityDecoder(ctx);
 
-                FrameHeader h;
-                while ((h = splicer.next()) != null) {
-                    try {
-                        byte[] payload = unpacker.unpack(demo.segment, h);
-                        int cmd = DemoCommand.stripFlags(h.rawCmd());
-                        decoder.handle(cmd, h.tick(), payload, unpacker.length());
+                    FrameHeader h;
+                    while ((h = splicer.next()) != null) {
+                        try {
+                            byte[] payload = unpacker.unpack(demo.segment, h);
+                            int cmd = DemoCommand.stripFlags(h.rawCmd());
+                            decoder.handle(cmd, h.tick(), payload, unpacker.length());
 
-                        counters.framesProcessed.increment();
-                        counters.bytesRead.add(h.payloadSize());
+                            counters.framesProcessed.increment();
+                            counters.bytesRead.add(h.payloadSize());
 
-                        if (decoder.tickComplete()) {
-                            PlayerState[] snap = ctx.snapshot();
-                            counters.ticksProcessed.increment();
-                            counters.queueDepth.set(queue.size());
-                            queue.put(snap);
+                            if (decoder.tickComplete()) {
+                                PlayerState[] snap = ctx.snapshot();
+                                counters.ticksProcessed.increment();
+                                counters.queueDepth.set(queue.size());
+                                queue.put(snap);
+                            }
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        } catch (Exception e) {
+                            System.err.println("warn: frame error at tick " + h.tick()
+                                + ": " + e.getMessage());
                         }
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    } catch (Exception e) {
-                        System.err.println("warn: frame error at tick " + h.tick()
-                            + ": " + e.getMessage());
                     }
+                } finally {
+                    try { queue.put(POISON); } catch (InterruptedException ignored) {}
                 }
-                try { queue.put(POISON); } catch (InterruptedException ignored) {}
             });
 
             parser.join();

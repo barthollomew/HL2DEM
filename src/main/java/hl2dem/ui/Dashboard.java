@@ -43,7 +43,6 @@ public final class Dashboard {
         this.filename = demoPath.getFileName().toString();
 
         AnsiRenderer.hideCursor();
-        // Full clear once at startup.
         StringBuilder init = new StringBuilder();
         AnsiRenderer.clearScreen(init);
         AnsiRenderer.moveTo(init, 1, 1);
@@ -58,7 +57,6 @@ public final class Dashboard {
             PerfCounters.Snapshot snap = counters.snapshot(startMs);
 
             frame.setLength(0);
-            // Title bar.
             AnsiRenderer.moveTo(frame, 1, 1);
             AnsiRenderer.eraseLine(frame);
             AnsiRenderer.bold(frame);
@@ -69,14 +67,12 @@ public final class Dashboard {
                  .append("  |  Tick: ").append(String.format("%,d", snap.ticks()))
                  .append("  |  ").append(formatElapsed(snap.elapsedMs()));
 
-            // Separator.
             AnsiRenderer.moveTo(frame, 2, 1);
             AnsiRenderer.eraseLine(frame);
             AnsiRenderer.fg(frame, 34);
             frame.append("--------------------------------------------------------------------");
             AnsiRenderer.reset(frame);
 
-            // Performance metrics section header.
             AnsiRenderer.moveTo(frame, 9, 1);
             AnsiRenderer.eraseLine(frame);
             AnsiRenderer.bold(frame);
@@ -86,7 +82,6 @@ public final class Dashboard {
 
             MetricsPanel.render(frame, snap);
 
-            // Player leaderboard.
             PlayerState[] players = entityContext.snapshot();
             LeaderboardPanel.render(frame, players, crosshair, blind);
 
@@ -100,7 +95,6 @@ public final class Dashboard {
     public void stop() {
         if (task != null) task.cancel(false);
         timer.shutdownNow();
-        // Restore terminal.
         StringBuilder cleanup = new StringBuilder();
         AnsiRenderer.moveTo(cleanup, 50, 1);
         AnsiRenderer.reset(cleanup);

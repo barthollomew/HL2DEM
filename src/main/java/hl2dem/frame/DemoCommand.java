@@ -5,9 +5,8 @@ import valve.pb.DemoProto;
 public final class DemoCommand {
 
     // Bitmask: if set on a raw command byte, the payload is Snappy-compressed.
-    public static final int IS_COMPRESSED = DemoProto.EDemoCommands.DEM_IsCompressed_VALUE; // 64
+    public static final int IS_COMPRESSED = DemoProto.EDemoCommands.DEM_IsCompressed_VALUE;
 
-    // Command IDs from the generated EDemoCommands protobuf enum.
     public static final int STOP            = DemoProto.EDemoCommands.DEM_Stop_VALUE;
     public static final int FILE_HEADER     = DemoProto.EDemoCommands.DEM_FileHeader_VALUE;
     public static final int FILE_INFO       = DemoProto.EDemoCommands.DEM_FileInfo_VALUE;

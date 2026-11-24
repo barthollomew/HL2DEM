@@ -5,10 +5,7 @@ public final class EntityContext {
     public static final int MAX_ENTITIES = 2048;
     private static final int MAX_PLAYERS = 64;
 
-    // Entity slot array indexed by entity ID. Most slots are null.
     private final PlayerState[] slots = new PlayerState[MAX_ENTITIES];
-
-    // Compact list of player entity IDs for fast iteration.
     private final int[] playerEntityIds = new int[MAX_PLAYERS];
     private int playerCount = 0;
 
@@ -35,7 +32,6 @@ public final class EntityContext {
         if (entityId < 0 || entityId >= MAX_ENTITIES) return;
         if (slots[entityId] != null) {
             slots[entityId] = null;
-            // Compact the player ID list.
             for (int i = 0; i < playerCount; i++) {
                 if (playerEntityIds[i] == entityId) {
                     playerEntityIds[i] = playerEntityIds[--playerCount];

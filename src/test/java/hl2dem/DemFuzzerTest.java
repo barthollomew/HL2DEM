@@ -23,19 +23,14 @@ class DemFuzzerTest {
     @TempDir
     Path tempDir;
 
-    // 8-byte PBDEMS2\0 magic
     private static byte[] magic() {
         return "PBDEMS2\0".getBytes(StandardCharsets.US_ASCII);
     }
 
     // 19-byte minimal legal demo: magic(8) + fileInfoOffset(4) + reserved(4) + DEM_STOP frame(3)
-    // DEM_STOP frame = varint(cmd=0) + varint(tick=0) + varint(size=0) = 3 zero bytes
     private static byte[] minimalValidDemo() {
         byte[] buf = new byte[19];
         System.arraycopy(magic(), 0, buf, 0, 8);
-        // fileInfoOffset at bytes 8-11 = 0 (LE int32)
-        // reserved at bytes 12-15 = 0
-        // DEM_STOP: cmd=0, tick=0, size=0 — three single-byte varints at bytes 16-18
         return buf;
     }
 
@@ -48,7 +43,7 @@ class DemFuzzerTest {
     private void runParser(Path p) throws IOException {
         try (DemoFile demo = DemoFile.open(p)) {
             FrameSplicer splicer = new FrameSplicer(demo);
-            while (splicer.next() != null) { /* exhaust frames */ }
+            while (splicer.next() != null) {}
         }
     }
 
@@ -80,40 +75,34 @@ class DemFuzzerTest {
 
     @Test
     void truncatedAfterMagic_throwsIOException() throws IOException {
-        // 8-byte magic only — fileInfoOffset bytes are missing
         Path p = writeTemp("magic_only.dem", magic());
         assertThrows(IOException.class, () -> runParser(p));
     }
 
     @Test
     void truncatedMidVarint_parserReturnsGracefully() throws IOException {
-        // Valid 16-byte header, then a varint byte with continuation bit set (0x80) but no next byte
         byte[] bytes = new byte[17];
         System.arraycopy(magic(), 0, bytes, 0, 8);
-        bytes[16] = (byte) 0x80;
+        bytes[16] = (byte) 0x80; // continuation bit set with no following byte
         Path p = writeTemp("truncated_varint.dem", bytes);
-        // FrameSplicer catches IllegalStateException from VarintReader and returns null
         assertDoesNotThrow(() -> runParser(p));
     }
 
     @Test
     void oversizedFramePayload_parserReturnsGracefully() throws IOException {
-        // cmd=3 (DEM_SyncTick), tick=0, size=0x3FFF (16383) — payload far exceeds file size
-        // Encodes size as two-byte varint: 0xFF 0x7F
+        // cmd=3 (DEM_SyncTick), tick=0, size=16383 (0xFF 0x7F) exceeding file length
         byte[] bytes = new byte[20];
         System.arraycopy(magic(), 0, bytes, 0, 8);
-        bytes[16] = 0x03; // cmd varint
-        bytes[17] = 0x00; // tick varint
-        bytes[18] = (byte) 0xFF; // size varint byte 1 (continuation)
-        bytes[19] = 0x7F;        // size varint byte 2 = 16383
-        // FrameSplicer reads the header, advances position by 16383+20, next call returns null
+        bytes[16] = 0x03;
+        bytes[17] = 0x00;
+        bytes[18] = (byte) 0xFF;
+        bytes[19] = 0x7F;
         Path p = writeTemp("oversized.dem", bytes);
         assertDoesNotThrow(() -> runParser(p));
     }
 
     @Test
     void allZeroPayloadAfterHeader_parserReturnsGracefully() throws IOException {
-        // Realistic corruption: valid magic + 1 KB of zeros
         byte[] bytes = new byte[1024];
         System.arraycopy(magic(), 0, bytes, 0, 8);
         Path p = writeTemp("all_zeros.dem", bytes);
@@ -126,15 +115,13 @@ class DemFuzzerTest {
         Random rng = new Random(seed);
         byte[] bytes = new byte[512];
         rng.nextBytes(bytes);
-        System.arraycopy(magic(), 0, bytes, 0, 8); // keep magic so DemoFile.open() succeeds
+        System.arraycopy(magic(), 0, bytes, 0, 8);
         Path p = writeTemp(seed + ".dem", bytes);
         // IOException from corrupt header bytes 8-15 is acceptable; RuntimeExceptions are not
         try (DemoFile demo = DemoFile.open(p)) {
             FrameSplicer splicer = new FrameSplicer(demo);
-            while (splicer.next() != null) { /* exhaust */ }
-        } catch (IOException ignored) {
-            // Acceptable: corrupt fileInfoOffset or reserved bytes may cause IOException
-        }
+            while (splicer.next() != null) {}
+        } catch (IOException ignored) {}
     }
 
     @ParameterizedTest
@@ -142,9 +129,7 @@ class DemFuzzerTest {
     void bitFlipMutations_parserNeverHangs(long seed) throws IOException {
         Random rng = new Random(seed);
         byte[] bytes = minimalValidDemo().clone();
-        // Expand to 256 bytes with realistic padding
         bytes = java.util.Arrays.copyOf(bytes, 256);
-        // Apply 10 random bit-flips beyond the magic header
         for (int i = 0; i < 10; i++) {
             int pos = 8 + rng.nextInt(bytes.length - 8);
             bytes[pos] ^= (byte) (1 << rng.nextInt(8));
@@ -152,7 +137,7 @@ class DemFuzzerTest {
         Path p = writeTemp("bitflip_" + seed + ".dem", bytes);
         try (DemoFile demo = DemoFile.open(p)) {
             FrameSplicer splicer = new FrameSplicer(demo);
-            while (splicer.next() != null) { /* exhaust */ }
-        } catch (IOException ignored) { }
+            while (splicer.next() != null) {}
+        } catch (IOException ignored) {}
     }
 }

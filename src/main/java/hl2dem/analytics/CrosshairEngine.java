@@ -2,10 +2,6 @@ package hl2dem.analytics;
 
 import hl2dem.entity.PlayerState;
 
-import java.util.concurrent.atomic.LongAdder;
-
-// Estimates per-player crosshair placement accuracy against opponent hitboxes.
-// Runs off the hot path in the analytics virtual thread.
 public final class CrosshairEngine {
 
     private static final int MAX_PLAYERS = 64;
@@ -34,9 +30,7 @@ public final class CrosshairEngine {
         }
     }
 
-    // Simple ray-AABB intersection: shooter aim ray vs. target head + body AABB.
     private boolean rayHitsPlayer(PlayerState shooter, PlayerState target) {
-        // Forward unit vector from yaw/pitch.
         double yawRad   = Math.toRadians(shooter.yaw);
         double pitchRad = Math.toRadians(shooter.pitch);
         double cosPitch = Math.cos(pitchRad);
@@ -46,17 +40,14 @@ public final class CrosshairEngine {
 
         float ox = shooter.x, oy = shooter.y, oz = shooter.z + 64f; // eye offset
 
-        // Check head AABB.
         float hx = target.x, hy = target.y, hz = target.z + 64f + HEAD_HD;
         if (rayHitsBox(ox, oy, oz, dx, dy, dz, hx, hy, hz, HEAD_HW, HEAD_HH, HEAD_HD)) {
             return true;
         }
-        // Check body AABB.
         float bz = target.z + BODY_HD;
         return rayHitsBox(ox, oy, oz, dx, dy, dz, target.x, target.y, bz, BODY_HW, BODY_HH, BODY_HD);
     }
 
-    // Slab-based AABB ray intersection test. Returns true if the ray hits the box.
     private boolean rayHitsBox(float ox, float oy, float oz,
                                 float dx, float dy, float dz,
                                 float cx, float cy, float cz,
@@ -79,7 +70,6 @@ public final class CrosshairEngine {
         return tExit > tEnter && tExit > 0 && tEnter < 8192f; // max aim range 8192 units
     }
 
-    // Returns accuracy [0.0, 1.0] for the player with this entity ID.
     public float accuracy(int entityId) {
         int s = slotOf(entityId);
         long a = aimed[s];
