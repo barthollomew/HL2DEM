@@ -8,11 +8,8 @@ import java.lang.foreign.ValueLayout;
 
 public final class FrameUnpacker {
 
-    // Pre-allocated scratch buffer reused on every unpack call. Grown as needed.
-    private byte[] compressed = new byte[1 << 17]; // 128 KB initial
-    private byte[] scratch = new byte[1 << 20];    // 1 MB initial
-
-    // How many valid bytes are in scratch after the last unpack() call.
+    private byte[] compressed = new byte[1 << 17];
+    private byte[] scratch = new byte[1 << 20];
     private int unpackedLen;
 
     // Returns the scratch buffer. Valid bytes are [0 .. length()-1).
@@ -22,7 +19,6 @@ public final class FrameUnpacker {
         long offset = header.payloadOffset();
 
         if (DemoCommand.isCompressed(header.rawCmd())) {
-            // Copy compressed bytes into staging buffer.
             if (size > compressed.length) {
                 compressed = new byte[size];
             }

@@ -18,31 +18,31 @@ Counter-Strike 2 match replays (`.dem` files) pack hundreds of megabytes of tick
 ## Build
 
 ```bash
-gradlew clean build
+./gradlew clean build
 ```
 
 The first build downloads CS2 proto files from SteamDatabase over the network and generates Java code. Later builds use cached protos.
 
 ## Usage
 
-Run directly:
+Run directly with Gradle:
 
 ```bash
-gradlew run --args="match.dem"
+./gradlew run --args="match.dem"
 ```
 
-Or build a fat jar:
+Or build an installable distribution:
 
 ```bash
-gradlew shadowJar
-java --enable-preview -jar build/libs/hl2dem-1.0.jar match.dem
+./gradlew installDist
+./build/install/hl2dem/bin/hl2dem match.dem
 ```
 
 Export to file:
 
 ```bash
-java --enable-preview -jar build/libs/hl2dem-1.0.jar match.dem --out out.ndjson --format json
-java --enable-preview -jar build/libs/hl2dem-1.0.jar match.dem --out out.csv --format csv
+./build/install/hl2dem/bin/hl2dem match.dem --out out.ndjson --format json
+./build/install/hl2dem/bin/hl2dem match.dem --out out.csv --format csv
 ```
 
 ## Flags
@@ -70,7 +70,7 @@ CSV output uses the same fields in order with a header row.
 ## Benchmarks
 
 ```bash
-gradlew jmh
+./gradlew jmh
 ```
 
 Benchmarks test BitReader and HuffmanTree hot paths. See PERFORMANCE.md for full results.
@@ -93,7 +93,7 @@ Testing found two real parser bugs:
 ## Tests
 
 ```bash
-gradlew test
+./gradlew test
 ```
 
 There are 24 tests. DemFuzzerTest tests corrupt input like bad magic headers and truncated frames. VarintReaderTest tests varint edge cases.

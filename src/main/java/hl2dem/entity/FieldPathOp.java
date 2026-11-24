@@ -1,14 +1,11 @@
 package hl2dem.entity;
 
-// The 40 field path operations used in the CS2 entity bit-stream decoder.
-// Weights are the Huffman node frequencies from the Source 2 engine.
-// The Huffman tree is built at startup by FieldPathDecoder.
+// Field path opcodes and Source 2 Huffman weights used by EntityDecoder.
 final class FieldPathOp {
 
     final String name;
     final int weight;
 
-    // Encoded as constants matching the original Source 2 implementation.
     static final int PLUS_ONE                               = 0;
     static final int PLUS_TWO                              = 1;
     static final int PLUS_THREE                            = 2;
@@ -55,7 +52,6 @@ final class FieldPathOp {
         this.id = id;
     }
 
-    // The 40 operations and their Huffman weights (from Source 2 Source).
     static final FieldPathOp[] ALL = {
         new FieldPathOp("PlusOne", 36, PLUS_ONE),
         new FieldPathOp("PlusTwo", 10, PLUS_TWO),

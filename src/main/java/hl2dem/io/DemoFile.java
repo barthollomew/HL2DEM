@@ -27,7 +27,9 @@ public final class DemoFile implements AutoCloseable {
     }
 
     public static DemoFile open(Path path) throws IOException {
-        Arena arena = Arena.ofConfined();
+        // Shared arena allows the parser virtual thread to read the mapped segment
+        // opened on the caller thread while keeping deterministic close().
+        Arena arena = Arena.ofShared();
         try {
             FileChannel channel = FileChannel.open(path, StandardOpenOption.READ);
             MemorySegment seg = channel.map(FileChannel.MapMode.READ_ONLY, 0, channel.size(), arena);

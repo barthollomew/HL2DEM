@@ -8,7 +8,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 
-// Writes one NDJSON object per player per tick to the output stream.
 public final class JsonExporter implements Exporter {
 
     private final BufferedWriter writer;

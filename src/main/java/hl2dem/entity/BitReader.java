@@ -21,7 +21,6 @@ final class BitReader {
         return bitLimit - bitPos;
     }
 
-    // Read n bits (0-32), LSB-first.
     int readBits(int n) {
         if (n == 0) return 0;
         int result = 0;
@@ -83,12 +82,10 @@ final class BitReader {
         return (n >>> 1) ^ -(n & 1);
     }
 
-    // Reads a 32-bit float verbatim.
     float readFloat32() {
         return Float.intBitsToFloat(readBits(32));
     }
 
-    // Reads a quantized float with given bit count and range [low, high].
     float readQuantizedFloat(int bitCount, float low, float high) {
         if (bitCount == 0) return low;
         int maxVal = (1 << bitCount) - 1;
@@ -96,7 +93,6 @@ final class BitReader {
         return low + (high - low) * (rawVal / (float) maxVal);
     }
 
-    // Reads an angle in 360-degree space encoded in `bits` bits.
     float readAngle(int bits) {
         int mask = (1 << bits) - 1;
         return readBits(bits) * (360.0f / (mask + 1));

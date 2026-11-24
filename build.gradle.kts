@@ -16,6 +16,7 @@ java {
 
 application {
     mainClass.set("hl2dem.Main")
+    applicationDefaultJvmArgs = listOf("--enable-preview")
 }
 
 repositories { mavenCentral() }
@@ -33,7 +34,6 @@ val protoOutDir = layout.buildDirectory.dir("proto/cs2")
 
 val protoBaseUrl = "https://raw.githubusercontent.com/SteamDatabase/GameTracking-CS2/master/Protobufs"
 
-// Core demo and network message protos needed for CS2 demo parsing.
 val protoFilesToFetch = listOf(
     "demo.proto",
     "netmessages.proto",
@@ -91,16 +91,13 @@ val patchProtos by tasks.registering {
         dir.listFiles()?.filter { it.name.endsWith(".proto") }?.forEach { f ->
             var text = f.readText()
 
-            // Remove lines with option additional_includes
             text = text.lines().filter { !it.contains("additional_includes") }.joinToString("\n")
 
-            // Remove boxed_type and synthetic_default from options
             text = text.replace(Regex(",\\s*boxed_type\\s*=\\s*\"[^\"]*\""), "")
             text = text.replace(Regex("boxed_type\\s*=\\s*\"[^\"]*\"\\s*,?"), "")
             text = text.replace(Regex(",\\s*synthetic_default\\s*=\\s*\"[^\"]*\""), "")
             text = text.replace(Regex("synthetic_default\\s*=\\s*\"[^\"]*\"\\s*,?"), "")
 
-            // Clean up empty option brackets like [] left over
             text = text.replace(Regex("\\[\\s*\\]"), "")
 
             if (!text.contains("option java_package")) {

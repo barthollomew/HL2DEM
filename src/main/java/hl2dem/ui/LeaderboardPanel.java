@@ -18,7 +18,6 @@ public final class LeaderboardPanel {
 
     public static void render(StringBuilder sb, PlayerState[] players,
                               CrosshairEngine crosshair, BlindnessTracker blind) {
-        // Section header.
         AnsiRenderer.moveTo(sb, 10, 1);
         AnsiRenderer.eraseLine(sb);
         AnsiRenderer.bold(sb);
@@ -26,7 +25,6 @@ public final class LeaderboardPanel {
         sb.append("PLAYERS");
         AnsiRenderer.reset(sb);
 
-        // Column header.
         AnsiRenderer.moveTo(sb, HEADER_ROW, 1);
         AnsiRenderer.eraseLine(sb);
         AnsiRenderer.fg(sb, 36);
@@ -39,7 +37,6 @@ public final class LeaderboardPanel {
             return;
         }
 
-        // Sort by accuracy descending.
         PlayerState[] sorted = players.clone();
         Arrays.sort(sorted, Comparator.comparingDouble(
             (PlayerState p) -> p == null ? 0.0 : crosshair.accuracy(p.entityId))
@@ -72,7 +69,6 @@ public final class LeaderboardPanel {
             AnsiRenderer.reset(sb);
         }
 
-        // Blank out any leftover rows.
         for (int i = count; i < MAX_DISPLAY; i++) {
             AnsiRenderer.moveTo(sb, DATA_ROW + i, 1);
             AnsiRenderer.eraseLine(sb);
