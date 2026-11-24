@@ -1,10 +1,10 @@
-# HL2DEM
+# cs2-replay-to-json
 
-Counter-Strike 2 match replays (`.dem` files) pack hundreds of megabytes of tick-by-tick player positions, view angles, and flashbang states into a compressed binary stream.
+Counter-Strike 2 match replays (`.dem` files) pack hundreds of megabytes of tick-by-tick player positions view angles and flashbang states into a compressed binary stream.
 
 ## What it does
 
-HL2DEM parses CS2 demo files at high speed using modern Java. It memory-maps the `.dem` file with Java 21 `MemorySegment` so it never loads the whole file into heap memory. It unpacks Snappy frames and Source 2 Huffman field paths with zero copy overhead. It runs live crosshair accuracy and flashbang blindness analytics (`CrosshairEngine` and `BlindnessTracker`) on a background virtual thread while rendering a live terminal dashboard (`Dashboard`). It streams every tick to NDJSON or CSV.
+`cs2-replay-to-json` (package `hl2dem`) parses CS2 demo files at high speed using modern Java. It memory-maps the `.dem` file with Java 21 `MemorySegment` so it never loads the whole file into heap memory. It unpacks Snappy frames and Source 2 Huffman field paths with zero copy overhead. It runs live crosshair accuracy and flashbang blindness analytics (`CrosshairEngine` and `BlindnessTracker`) on a background virtual thread while rendering a live terminal dashboard (`Dashboard`). It streams every tick to NDJSON or CSV.
 
 ## How it works
 
